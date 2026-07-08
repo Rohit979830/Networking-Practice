@@ -1,0 +1,224 @@
+[root@rocky ~]# lsblk
+NAME        MAJMIN RM  SIZE RO TYPE MOUNTPOINTS
+sr0          110    1  1.8G  0 rom
+nvme0n1     2590    0   20G  0 disk
+├─nvme0n1p1 2591    0    1G  0 part boot
+└─nvme0n1p2 2592    0   19G  0 part
+  ├─rl-root 2530    0   17G  0 lvm  
+  └─rl-swap 2531    0    2G  0 lvm  [SWAP]
+nvme0n2     2593    0    2G  0 disk
+nvme0n3     2594    0    2G  0 disk
+[root@rocky ~]#
+[root@rocky ~]# fdisk devnvme0n2
+
+Welcome to fdisk (util-linux 2.37.4).
+Changes will remain in memory only, until you decide to write them.
+Be careful before using the write command.
+
+Device does not contain a recognized partition table.
+Created a new DOS disklabel with disk identifier 0x8cac8875.
+
+Command (m for help) m
+
+Help
+
+  DOS (MBR)
+   a   toggle a bootable flag
+   b   edit nested BSD disklabel
+   c   toggle the dos compatibility flag
+
+  Generic
+   d   delete a partition
+   F   list free unpartitioned space
+   l   list known partition types
+   n   add a new partition
+   p   print the partition table
+   t   change a partition type
+   v   verify the partition table
+   i   print information about a partition
+
+  Misc
+   m   print this menu
+   u   change displayentry units
+   x   extra functionality (experts only)
+
+  Script
+   I   load disk layout from sfdisk script file
+   O   dump disk layout to sfdisk script file
+
+  Save & Exit
+   w   write table to disk and exit
+   q   quit without saving changes
+
+  Create a new label
+   g   create a new empty GPT partition table
+   G   create a new empty SGI (IRIX) partition table
+   o   create a new empty DOS partition table
+   s   create a new empty Sun partition table
+
+
+Command (m for help) p
+Disk devnvme0n2 2 GiB, 2147483648 bytes, 4194304 sectors
+Disk model VMware Virtual NVMe Disk
+Units sectors of 1  512 = 512 bytes
+Sector size (logicalphysical) 512 bytes  512 bytes
+IO size (minimumoptimal) 512 bytes  512 bytes
+Disklabel type dos
+Disk identifier 0x8cac8875
+
+Command (m for help) n
+Partition type
+   p   primary (0 primary, 0 extended, 4 free)
+   e   extended (container for logical partitions)
+Select (default p) p
+Partition number (1-4, default 1) 1
+First sector (2048-4194303, default 2048)
+Last sector, +-sectors or +-size{K,M,G,T,P} (2048-4194303, default 4194303) +5G
+Value out of range.
+Last sector, +-sectors or +-size{K,M,G,T,P} (2048-4194303, default 4194303)
+
+Created a new partition 1 of type 'Linux' and of size 2 GiB.
+
+Command (m for help) t
+Selected partition 1
+Hex code or alias (type L to list all) 8e
+Changed type of partition 'Linux' to 'Linux LVM'.
+
+Command (m for help) w
+The partition table has been altered.
+Calling ioctl() to re-read partition table.
+Syncing disks.
+
+[root@rocky ~]# fdisk devnvme0n3
+
+Welcome to fdisk (util-linux 2.37.4).
+Changes will remain in memory only, until you decide to write them.
+Be careful before using the write command.
+
+Device does not contain a recognized partition table.
+Created a new DOS disklabel with disk identifier 0xbac193fa.
+
+Command (m for help) n
+Partition type
+   p   primary (0 primary, 0 extended, 4 free)
+   e   extended (container for logical partitions)
+Select (default p) p
+Partition number (1-4, default 1) 2
+First sector (2048-4194303, default 2048)
+Last sector, +-sectors or +-size{K,M,G,T,P} (2048-4194303, default 4194303)
+
+Created a new partition 2 of type 'Linux' and of size 2 GiB.
+
+Command (m for help) t
+Selected partition 2
+Hex code or alias (type L to list all) 8e
+Changed type of partition 'Linux' to 'Linux LVM'.
+
+Command (m for help) w
+The partition table has been altered.
+Calling ioctl() to re-read partition table.
+Syncing disks.
+
+[root@rocky ~]# lsblk
+NAME        MAJMIN RM  SIZE RO TYPE MOUNTPOINTS
+sr0          110    1  1.8G  0 rom
+nvme0n1     2590    0   20G  0 disk
+├─nvme0n1p1 2591    0    1G  0 part boot
+└─nvme0n1p2 2592    0   19G  0 part
+  ├─rl-root 2530    0   17G  0 lvm  
+  └─rl-swap 2531    0    2G  0 lvm  [SWAP]
+nvme0n2     2593    0    2G  0 disk
+└─nvme0n2p1 2596    0    2G  0 part
+nvme0n3     2594    0    2G  0 disk
+└─nvme0n3p2 2595    0    2G  0 part
+[root@rocky ~]#
+[root@rocky ~]#
+[root@rocky ~]# pvcreate devnvme0n2p1 devnvme0n3p2
+  Physical volume devnvme0n2p1 successfully created.
+  Physical volume devnvme0n3p2 successfully created.
+[root@rocky ~]#
+[root@rocky ~]# vgcreate myvg devnvme0n2p1
+  Volume group myvg successfully created
+[root@rocky ~]#
+[root@rocky ~]# vgextend myvg devnvme0n3p2
+  Volume group myvg successfully extended
+[root@rocky ~]#
+[root@rocky ~]# lvcreate -L 3G -n mylv myvg
+  Logical volume mylv created.
+[root@rocky ~]#
+[root@rocky ~]# lvextend -L +1G devmyvgmylv
+  Insufficient free space 256 extents needed, but only 254 available
+[root@rocky ~]#
+[root@rocky ~]#
+[root@rocky ~]#
+[root@rocky ~]# mkfs.xfs devmyvgmylv
+meta-data=devmyvgmylv         isize=512    agcount=4, agsize=196608 blks
+         =                       sectsz=512   attr=2, projid32bit=1
+         =                       crc=1        finobt=1, sparse=1, rmapbt=0
+         =                       reflink=1    bigtime=1 inobtcount=1 nrext64=0
+data     =                       bsize=4096   blocks=786432, imaxpct=25
+         =                       sunit=0      swidth=0 blks
+naming   =version 2              bsize=4096   ascii-ci=0, ftype=1
+log      =internal log           bsize=4096   blocks=16384, version=2
+         =                       sectsz=512   sunit=0 blks, lazy-count=1
+realtime =none                   extsz=4096   blocks=0, rtextents=0
+[root@rocky ~]#
+[root@rocky ~]# mkdir -p logical
+[root@rocky ~]#
+[root@rocky ~]# mount devmyvgmylv logical
+[root@rocky ~]#
+[root@rocky ~]# df -hT
+Filesystem            Type      Size  Used Avail Use% Mounted on
+devtmpfs              devtmpfs  4.0M     0  4.0M   0% dev
+tmpfs                 tmpfs     871M     0  871M   0% devshm
+tmpfs                 tmpfs     349M  5.2M  344M   2% run
+devmapperrl-root   xfs        17G  1.3G   16G   8% 
+devnvme0n1p1        xfs       960M  231M  730M  25% boot
+tmpfs                 tmpfs     175M     0  175M   0% runuser1000
+devmappermyvg-mylv xfs       3.0G   54M  2.9G   2% logical
+[root@rocky ~]#
+[root@rocky ~]#
+[root@rocky ~]# blkid devmyvgmylv
+devmyvgmylv UUID=f01e1e4e-e643-4cd7-8e99-45ad92cd786f TYPE=xfs
+[root@rocky ~]#
+[root@rocky ~]# echo^C
+[root@rocky ~]# echo UUID=f01e1e4e-e643-4cd7-8e99-45ad92cd786f logical xfs defaults 0 0  etcfstab
+[root@rocky ~]#
+[root@rocky ~]# df -hT
+Filesystem            Type      Size  Used Avail Use% Mounted on
+devtmpfs              devtmpfs  4.0M     0  4.0M   0% dev
+tmpfs                 tmpfs     871M     0  871M   0% devshm
+tmpfs                 tmpfs     349M  5.2M  344M   2% run
+devmapperrl-root   xfs        17G  1.3G   16G   8% 
+devnvme0n1p1        xfs       960M  231M  730M  25% boot
+tmpfs                 tmpfs     175M     0  175M   0% runuser1000
+devmappermyvg-mylv xfs       3.0G   54M  2.9G   2% logical
+[root@rocky ~]#
+[root@rocky ~]#
+[root@rocky ~]# cd logical
+[root@rocky logical]# touch file1 file2
+[root@rocky logical]# mkdir dir1
+[root@rocky logical]#
+[root@rocky logical]# ls-l
+bash ls-l command not found
+[root@rocky logical]# cd ~
+[root@rocky ~]# ls -l
+total 4
+-rw-------. 1 root root 1457 Feb 21 1054 anaconda-ks.cfg
+[root@rocky ~]# cat etcfstab
+
+#
+# etcfstab
+# Created by anaconda on Fri Feb 21 051003 2025
+#
+# Accessible filesystems, by reference, are maintained under 'devdisk'.
+# See man pages fstab(5), findfs(8), mount(8) andor blkid(8) for more info.
+#
+# After editing this file, run 'systemctl daemon-reload' to update systemd
+# units generated from this file.
+#
+devmapperrl-root                            xfs     defaults        0 0
+UUID=8ed0bf6a-906f-4578-9d73-46281e80e2b1 boot                   xfs     defaults        0 0
+devmapperrl-swap     none                    swap    defaults        0 0
+UUID=f01e1e4e-e643-4cd7-8e99-45ad92cd786f logical xfs defaults 0 0
+[root@rocky ~]#
