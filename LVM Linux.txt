@@ -222,3 +222,6 @@ UUID=8ed0bf6a-906f-4578-9d73-46281e80e2b1 boot                   xfs     default
 devmapperrl-swap     none                    swap    defaults        0 0
 UUID=f01e1e4e-e643-4cd7-8e99-45ad92cd786f logical xfs defaults 0 0
 [root@rocky ~]#
+
+
+HI
